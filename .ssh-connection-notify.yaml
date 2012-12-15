@@ -1,0 +1,8 @@
+
+smtp:
+  user: noreply@mycompany.ltd
+  password: mygoodpassword
+  serverhost: mail.mycompany.ltd
+  tcpport: 25
+  tls: True
+  debug: False
