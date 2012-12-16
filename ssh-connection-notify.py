@@ -101,7 +101,7 @@ def main():
 			msg="On {TIME} {SSH_MODE} Authorization on {SERVERNAME} from user {USERNAME} with IP {IPADDR} successfully!".format(TIME=_TIME,SSH_MODE=_SSH_MODE,SERVERNAME=getfqdn(gethostname()),USERNAME=_LOGIN, IPADDR=ipaddr)
 			notify_by_email(config, config['users'][_LOGIN]['email'], msg)
 			if path_exists('/usr/bin/wall') and file_exists('/usr/bin/wall'):
-				system_exec("/usr/bin/wall '"+msg+"'")
+				system_exec("echo '"+msg+"'|/usr/bin/wall")
 
 if __name__ == "__main__":
 	main()
