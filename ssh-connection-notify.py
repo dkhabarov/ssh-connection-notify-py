@@ -45,7 +45,7 @@ def is_exclude(config,user, ip):
 	if config['users'][user].has_key('exclude_ips') and exclude_ip(ip, config['users'][user]['exclude_ips']) or config['users'][user].has_key('exclude_nets') and exclude_net(ip, config['users'][user]['exclude_nets']):
 		return True
 	
-def notify_by_email(config, recipient, message):
+def sendmail(config, recipient, message):
 	try:
 		msg = MIMEText(message)
 		msg['Subject'] = 'Security notification'
@@ -65,9 +65,17 @@ def notify_by_email(config, recipient, message):
 			print("Error, while sending message for %s: %s" % (recipient,errmsg))
 			return None
 
+def notify_by_email(config,recipient,message):
+	if type(recipient) == str:
+		sendmail(config,recipient,message)
+	elif type(recipient) == list:
+		for i in recipient:
+			if type(i)==str:
+				sendmail(config,i,message)		
+			
 def main():
 	try:
-		cfg=open("/usr/local/etc/.ssh-connection-notify.yaml")
+		cfg=open("/etc/ssh/.ssh-connection-notify.yaml")
 	except IOError as errstr:
 		print("\033[31mERROR: "+errstr+"\033[0m")
 	
@@ -86,25 +94,14 @@ def main():
 	_SSH_CONNECTION=getenv("SSH_CONNECTION")
 	if _SSH_CONNECTION:
 		ipaddr=_SSH_CONNECTION.split()[0]
-		
 		_LOGIN=getenv("USER")
-		userconfig="%s/.ssh/ssh-connection-notify.yaml" % (getenv("HOME"))
-		if path_exists(userconfig) and file_exists(userconfig):
-			try:
-				ucfg=open(userconfig)
-			except IOError as errstr:
-				print("\033[31mERROR: "+errstr+"\033[0m")
-			try:
-				usrconf=loadconfig(ucfg.read())
-			except YAMLError as errstr:
-				print("\033[31mERROR: "+errstr+"\033[0m")
 		
-			if _LOGIN in usrconf['users'] and not is_exclude(usrconf, _LOGIN, ipaddr) and usrconf['users'][_LOGIN].has_key('email'):
-				_TIME=datetime.utcnow().ctime()
-				msg="On {TIME} {SSH_MODE} Authorization on {SERVERNAME} from user {USERNAME} with IP {IPADDR} successfully!".format(TIME=_TIME,SSH_MODE=_SSH_MODE,SERVERNAME=getfqdn(gethostname()),USERNAME=_LOGIN, IPADDR=ipaddr)
-				notify_by_email(config, usrconf['users'][_LOGIN]['email'], msg)
-				if path_exists('/usr/bin/wall') and file_exists('/usr/bin/wall'):
-					system_exec("/usr/bin/wall '"+msg+"'")
+		if _LOGIN in config['users'] and not is_exclude(config, _LOGIN, ipaddr) and config['users'][_LOGIN].has_key('email'):
+			_TIME=datetime.utcnow().ctime()
+			msg="On {TIME} {SSH_MODE} Authorization on {SERVERNAME} from user {USERNAME} with IP {IPADDR} successfully!".format(TIME=_TIME,SSH_MODE=_SSH_MODE,SERVERNAME=getfqdn(gethostname()),USERNAME=_LOGIN, IPADDR=ipaddr)
+			notify_by_email(config, config['users'][_LOGIN]['email'], msg)
+			if path_exists('/usr/bin/wall') and file_exists('/usr/bin/wall'):
+				system_exec("/usr/bin/wall '"+msg+"'")
 
 if __name__ == "__main__":
 	main()
