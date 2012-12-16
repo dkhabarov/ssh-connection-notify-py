@@ -72,6 +72,10 @@ def notify_by_email(config,recipient,message):
 		for i in recipient:
 			if type(i)==str:
 				sendmail(config,i,message)		
+
+def notify_wall(msg):
+	if path_exists('/usr/bin/wall') and file_exists('/usr/bin/wall'):
+		system_exec("echo '"+msg+"'|/usr/bin/wall")
 			
 def main():
 	try:
@@ -100,8 +104,10 @@ def main():
 			_TIME=datetime.utcnow().ctime()
 			msg="On {TIME} {SSH_MODE} Authorization on {SERVERNAME} from user {USERNAME} with IP {IPADDR} successfully!".format(TIME=_TIME,SSH_MODE=_SSH_MODE,SERVERNAME=getfqdn(gethostname()),USERNAME=_LOGIN, IPADDR=ipaddr)
 			notify_by_email(config, config['users'][_LOGIN]['email'], msg)
-			if path_exists('/usr/bin/wall') and file_exists('/usr/bin/wall'):
-				system_exec("echo '"+msg+"'|/usr/bin/wall")
-
+			notify_wall(msg)
+		if config.has_key('notify_if_user_not_defined') and config['notify_if_user_not_defined'] and config.has_key('notify_not_defined_to_email'):
+			notify_by_email(config, config['notify_not_defined_to_email'], msg)
+			notify_wall(msg)
+		
 if __name__ == "__main__":
 	main()

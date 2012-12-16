@@ -1,4 +1,7 @@
 
+
+notify_if_user_not_defined: True # Уведомлять, если пользователь не определён в секции users
+notify_not_defined_to_email: hostmaster@mycompany.ltd
 smtp:
   user: noreply@mycompany.ltd
   password: mygoodpassword
