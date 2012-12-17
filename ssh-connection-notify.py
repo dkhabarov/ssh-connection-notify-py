@@ -99,10 +99,9 @@ def main():
 	if _SSH_CONNECTION:
 		ipaddr=_SSH_CONNECTION.split()[0]
 		_LOGIN=getenv("USER")
-		
+		_TIME=datetime.utcnow().ctime()
+		msg="On {TIME} {SSH_MODE} Authorization on {SERVERNAME} from user {USERNAME} with IP {IPADDR} successfully!".format(TIME=_TIME,SSH_MODE=_SSH_MODE,SERVERNAME=getfqdn(gethostname()),USERNAME=_LOGIN, IPADDR=ipaddr)
 		if _LOGIN in config['users'] and not is_exclude(config, _LOGIN, ipaddr) and config['users'][_LOGIN].has_key('email'):
-			_TIME=datetime.utcnow().ctime()
-			msg="On {TIME} {SSH_MODE} Authorization on {SERVERNAME} from user {USERNAME} with IP {IPADDR} successfully!".format(TIME=_TIME,SSH_MODE=_SSH_MODE,SERVERNAME=getfqdn(gethostname()),USERNAME=_LOGIN, IPADDR=ipaddr)
 			notify_by_email(config, config['users'][_LOGIN]['email'], msg)
 			notify_wall(msg)
 		else:
