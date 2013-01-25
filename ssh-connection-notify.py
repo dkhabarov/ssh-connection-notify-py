@@ -19,7 +19,7 @@
 
 from os import getenv, system as system_exec
 from os.path import exists as path_exists, isfile as file_exists
-from socket import getfqdn, gethostname
+from socket import getfqdn, gethostname, error as SocketErrorException
 from email.mime.text import MIMEText
 from smtplib import SMTP, SMTPException
 from datetime import datetime
@@ -51,7 +51,7 @@ def sendmail(config, recipient, message):
 		msg['Subject'] = 'Security notification'
 		msg['From'] = config['smtp']['user']
 		msg['To'] = recipient
-		transport = SMTP(config['smtp']['serverhost'], config['smtp']['tcpport'])
+		transport = SMTP(config['smtp']['serverhost'], config['smtp']['tcpport'],timeout=10)
 		if config['smtp']['debug']:
 			transport.set_debuglevel(1)
 		transport.ehlo
@@ -60,7 +60,7 @@ def sendmail(config, recipient, message):
 		transport.login(config['smtp']['user'], config['smtp']['password'])
 		transport.sendmail(config['smtp']['user'], recipient, msg.as_string())
 		transport.quit()
-	except SMTPException as errmsg:
+	except (SocketErrorException,SMTPException) as errmsg:
 		if config['smtp']['debug']:
 			print("Error, while sending message for %s: %s" % (recipient,errmsg))
 			return None
