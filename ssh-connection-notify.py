@@ -29,6 +29,7 @@ try:
 	from yaml import load as loadconfig, YAMLError
 except ImportError as errstr:
 	print("\033[31m"+errstr+"\033[0m")
+	exit(1)
 
 
 def exclude_ip(ip, exclude_ips):
@@ -42,13 +43,13 @@ def exclude_net(ip, nets):
 
 
 def is_exclude(config,user, ip):
-	if config['users'][user].has_key('exclude_ips') and exclude_ip(ip, config['users'][user]['exclude_ips']) or config['users'][user].has_key('exclude_nets') and exclude_net(ip, config['users'][user]['exclude_nets']):
+	if (config['users'][user].has_key('exclude_ips') and exclude_ip(ip, config['users'][user]['exclude_ips'])) or (config['users'][user].has_key('exclude_nets') and exclude_net(ip, config['users'][user]['exclude_nets'])):
 		return True
 	
 def sendmail(config, recipient, message):
 	try:
 		msg = MIMEText(message)
-		msg['Subject'] = 'Security notification'
+		msg['Subject'] = 'Security notification ('+getfqdn(gethostname())+')'
 		msg['From'] = config['smtp']['user']
 		msg['To'] = recipient
 		transport = SMTP(config['smtp']['serverhost'], config['smtp']['tcpport'],timeout=10)
@@ -82,12 +83,13 @@ def main():
 		cfg=open("/etc/ssh/.ssh-connection-notify.yaml")
 	except IOError as errstr:
 		print("\033[31mERROR: "+errstr+"\033[0m")
+		exit(1)
 	
 	try:
 		config=loadconfig(cfg.read())
 	except YAMLError as errstr:
 		print("\033[31mERROR: "+errstr+"\033[0m")
-	
+		exit(1)
 	
 	_SSH_TTY=getenv("SSH_TTY")
 	if _SSH_TTY:
@@ -101,13 +103,12 @@ def main():
 		_LOGIN=getenv("USER")
 		_TIME=datetime.utcnow().ctime()
 		msg="On {TIME} {SSH_MODE} Authorization on {SERVERNAME} from user {USERNAME} with IP {IPADDR} successfully!".format(TIME=_TIME,SSH_MODE=_SSH_MODE,SERVERNAME=getfqdn(gethostname()),USERNAME=_LOGIN, IPADDR=ipaddr)
-		if _LOGIN in config['users'] and not is_exclude(config, _LOGIN, ipaddr) and config['users'][_LOGIN].has_key('email'):
+		if (_LOGIN in config['users'] and is_exclude(config, _LOGIN, ipaddr) is None and config['users'][_LOGIN].has_key('email')):
 			notify_by_email(config, config['users'][_LOGIN]['email'], msg)
 			notify_wall(msg)
-		else:
-			if config.has_key('notify_if_user_not_defined') and config['notify_if_user_not_defined'] and config.has_key('notify_not_defined_to_email'):
-				notify_by_email(config, config['notify_not_defined_to_email'], msg)
-				notify_wall(msg)
-		
+		if not _LOGIN in config['users'] and config['notify_if_user_not_defined'] and config.has_key('notify_not_defined_to_email'):
+			notify_by_email(config, config['notify_not_defined_to_email'], msg)
+			notify_wall(msg)
+				
 if __name__ == "__main__":
 	main()
